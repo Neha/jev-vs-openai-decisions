@@ -185,7 +185,7 @@ export function Dashboard() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8">
+    <main className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8">
       <header className="flex flex-col gap-4 border-b border-[var(--line)] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
