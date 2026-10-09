@@ -9,26 +9,22 @@ export function SiteNav() {
   const settings = pathname === "/settings";
 
   return (
-    <nav className="flex gap-2 text-sm">
+    <nav className="flex items-center gap-1 text-[17px]">
       <Link
         href="/"
-        className={`rounded-full border px-3 py-1 ${
-          compare
-            ? "border-white/20 bg-white/10 text-white"
-            : "border-[var(--line)] text-[var(--muted)] hover:text-white"
+        className={`rounded-full px-4 py-2 ${
+          compare ? "bg-[var(--text)] text-[var(--on-btn)]" : "text-[var(--muted)] hover:text-[var(--text)]"
         }`}
       >
-        Compare
+        Board
       </Link>
       <Link
         href="/settings"
-        className={`rounded-full border px-3 py-1 ${
-          settings
-            ? "border-white/20 bg-white/10 text-white"
-            : "border-[var(--line)] text-[var(--muted)] hover:text-white"
+        className={`rounded-full px-4 py-2 ${
+          settings ? "bg-[var(--text)] text-[var(--on-btn)]" : "text-[var(--muted)] hover:text-[var(--text)]"
         }`}
       >
-        Settings
+        Keys
       </Link>
     </nav>
   );

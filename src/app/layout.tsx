@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jev vs OpenAI Decisions",
+  title: "Same Ticket",
   description:
-    "Live comparison of TypeSafe Jev and OpenAI Decisions on price, correctness, and latency.",
+    "Three decision models. One support ticket. Live comparison of Jev, Laya, and OpenAI on price, correctness, and latency.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -25,10 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
-      </body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

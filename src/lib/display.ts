@@ -1,4 +1,10 @@
-import type { NormalizedAnswer, Winner } from "./types";
+import type { Leader, NormalizedAnswer, ProviderId } from "./types";
+
+export const PROVIDER_LABEL: Record<ProviderId, string> = {
+  jev: "Jev",
+  laya: "Laya",
+  openai: "OpenAI",
+};
 
 export function formatAnswer(answer: NormalizedAnswer | undefined): string {
   if (!answer) {
@@ -19,15 +25,13 @@ export function formatAnswer(answer: NormalizedAnswer | undefined): string {
   return String(answer.value);
 }
 
-export function winnerLabel(winner: Winner): string {
-  if (winner === "jev") {
-    return "Jev";
+export function leaderLabel(leader: Leader): string {
+  if (leader.kind === "none" || leader.ids.length === 0) {
+    return "—";
   }
-  if (winner === "openai") {
-    return "OpenAI";
+  const names = leader.ids.map((id) => PROVIDER_LABEL[id]);
+  if (leader.kind === "tie") {
+    return `Tie · ${names.join(" · ")}`;
   }
-  if (winner === "tie") {
-    return "Tie";
-  }
-  return "—";
+  return names[0] ?? "—";
 }

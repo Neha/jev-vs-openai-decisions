@@ -1,31 +1,30 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { BENCHMARK_CASES } from "@/data/benchmark";
-import { formatAnswer, winnerLabel } from "@/lib/display";
+import { formatAnswer, leaderLabel } from "@/lib/display";
 import { formatMs, formatUsd } from "@/lib/format";
-import { pickWinner, summarize } from "@/lib/metrics";
-import { TEMPLATES, type TemplateId } from "@/lib/templates";
+import { leaderColor, pickLeaders, summarize } from "@/lib/metrics";
 import type {
   CanonicalCase,
   CanonicalQuestion,
   GoldLabel,
-  ProviderResult,
   ProviderSummary,
   ScoredProviderResult,
 } from "@/lib/types";
-import { apiKeyHeaders, storedConfigured } from "@/lib/client-keys";
+import { apiKeyHeaders } from "@/lib/client-keys";
 import { CaseDrawer } from "./case-drawer";
-import { ProviderPanel } from "./provider-panel";
+import { PageShell } from "./page-shell";
+import { Playground } from "./playground";
+import { ProviderMark } from "./provider-mark";
 import { Scoreboard } from "./scoreboard";
-import { SiteNav } from "./site-nav";
 
-type Configured = { jev: boolean; openai: boolean };
+type Configured = { jev: boolean; laya: boolean; openai: boolean };
 
 type BenchRow = {
   testCase: CanonicalCase;
   jev?: ScoredProviderResult;
+  laya?: ScoredProviderResult;
   openai?: ScoredProviderResult;
 };
 
@@ -35,22 +34,11 @@ type DrawerState = {
   questions: readonly CanonicalQuestion[];
   gold: GoldLabel[];
   jev?: ScoredProviderResult;
+  laya?: ScoredProviderResult;
   openai?: ScoredProviderResult;
 };
 
-const SAMPLE =
-  "I was charged twice for my order and nobody has replied for 3 days. I need this refunded before my card statement closes tomorrow.";
-
 export function Dashboard() {
-  const [configured, setConfigured] = useState<Configured>({ jev: false, openai: false });
-  const [template, setTemplate] = useState<TemplateId>("combined");
-  const [input, setInput] = useState(SAMPLE);
-  const [playgroundRunning, setPlaygroundRunning] = useState(false);
-  const [playground, setPlayground] = useState<{
-    jev?: ProviderResult;
-    openai?: ProviderResult;
-  }>({});
-  const [playgroundError, setPlaygroundError] = useState<string | null>(null);
   const [rows, setRows] = useState<BenchRow[]>(() =>
     BENCHMARK_CASES.map((testCase) => ({ testCase })),
   );
@@ -58,64 +46,26 @@ export function Dashboard() {
   const [completed, setCompleted] = useState(0);
   const [summaries, setSummaries] = useState<{
     jev?: ProviderSummary;
+    laya?: ProviderSummary;
     openai?: ProviderSummary;
   }>({});
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
 
-  const questions = TEMPLATES[template].questions;
   const liveSummaries = useMemo(() => {
-    if (summaries.jev && summaries.openai) {
+    if (summaries.jev && summaries.laya && summaries.openai) {
       return summaries;
     }
     const jev = rows.map((row) => row.jev).filter((value): value is ScoredProviderResult => Boolean(value));
+    const laya = rows.map((row) => row.laya).filter((value): value is ScoredProviderResult => Boolean(value));
     const openai = rows
       .map((row) => row.openai)
       .filter((value): value is ScoredProviderResult => Boolean(value));
     return {
       jev: jev.length ? summarize(jev, "jev") : summaries.jev,
+      laya: laya.length ? summarize(laya, "laya") : summaries.laya,
       openai: openai.length ? summarize(openai, "openai") : summaries.openai,
     };
   }, [rows, summaries]);
-
-  useEffect(() => {
-    const local = storedConfigured();
-    void fetch("/api/status")
-      .then((response) => response.json())
-      .then((data: { env?: Configured }) => {
-        const env = data.env ?? { jev: false, openai: false };
-        setConfigured({
-          jev: env.jev || local.jev,
-          openai: env.openai || local.openai,
-        });
-      })
-      .catch(() => setConfigured(local));
-  }, []);
-
-  async function runPlayground() {
-    setPlaygroundRunning(true);
-    setPlaygroundError(null);
-    try {
-      const response = await fetch("/api/run", {
-        method: "POST",
-        headers: apiKeyHeaders(),
-        body: JSON.stringify({ input, template }),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        jev?: ProviderResult;
-        openai?: ProviderResult;
-      };
-      if (!response.ok) {
-        setPlaygroundError(data.error ?? "Run failed");
-        return;
-      }
-      setPlayground({ jev: data.jev, openai: data.openai });
-    } catch (error) {
-      setPlaygroundError(error instanceof Error ? error.message : "Run failed");
-    } finally {
-      setPlaygroundRunning(false);
-    }
-  }
 
   async function runBenchmark() {
     setBenchRunning(true);
@@ -155,17 +105,15 @@ export function Dashboard() {
             questions?: CanonicalQuestion[];
             gold?: GoldLabel[];
             jev?: ScoredProviderResult;
+            laya?: ScoredProviderResult;
             openai?: ScoredProviderResult;
-            summaries?: { jev: ProviderSummary; openai: ProviderSummary };
+            summaries?: { jev: ProviderSummary; laya: ProviderSummary; openai: ProviderSummary };
           };
-          if (event.type === "status" && event.configured) {
-            setConfigured(event.configured);
-          }
-          if (event.type === "case" && event.caseId && event.jev && event.openai) {
+          if (event.type === "case" && event.caseId && event.jev && event.laya && event.openai) {
             setRows((current) =>
               current.map((row) =>
                 row.testCase.id === event.caseId
-                  ? { ...row, jev: event.jev, openai: event.openai }
+                  ? { ...row, jev: event.jev, laya: event.laya, openai: event.openai }
                   : row,
               ),
             );
@@ -185,160 +133,115 @@ export function Dashboard() {
   }
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8">
-      <header className="flex flex-col gap-4 border-b border-[var(--line)] pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            Jev vs OpenAI Decisions
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Same labeled cases. Typed answers only. Price from billed input tokens,
-            correctness against gold labels, latency measured in this app.
-            Text-only so the matchup is fair — OpenAI can also take images; Jev cannot.
-          </p>
-        </div>
-        <div className="flex flex-col items-start gap-3 sm:items-end">
-          <SiteNav />
-          <div className="flex gap-2">
-            <KeyPill name="TypeSafe" ok={configured.jev} />
-            <KeyPill name="OpenAI" ok={configured.openai} />
-          </div>
-        </div>
+    <PageShell>
+      <header className="max-w-3xl">
+        <h1 className="text-[52px] leading-[1.05] font-semibold tracking-tight sm:text-[64px]">
+          Three models.
+          <br />
+          One ticket.
+        </h1>
+        <p className="mt-6 text-[21px] leading-8 text-[var(--muted)]">
+          <DocLink href="https://docs.typesafe.ai/api">Jev</DocLink> and{" "}
+          <DocLink href="https://laya.studio/docs">Laya</DocLink> share System One
+          and read text.{" "}
+          <DocLink href="https://developers.openai.com/api/docs/guides/decisions">
+            OpenAI Decisions
+          </DocLink>{" "}
+          can also read a photo. Score them on the same 24 support cases — photos
+          never enter the board.
+        </p>
       </header>
 
-      <Scoreboard jev={liveSummaries.jev} openai={liveSummaries.openai} />
+      <Playground />
 
-      <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)]/85 p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-          <label className="flex-1">
-            <span className="text-[11px] tracking-[0.2em] text-[var(--muted)] uppercase">
-              Playground
-            </span>
-            <textarea
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              rows={4}
-              className="mt-2 w-full rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-3 text-sm leading-6 outline-none focus:border-[var(--jev)]"
-            />
-          </label>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <select
-              value={template}
-              onChange={(event) => setTemplate(event.target.value as TemplateId)}
-              className="rounded-xl border border-[var(--line)] bg-[var(--bg)] px-3 py-3 text-sm"
-            >
-              {Object.values(TEMPLATES).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => void runPlayground()}
-              disabled={playgroundRunning || !input.trim()}
-              className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black disabled:opacity-50"
-            >
-              {playgroundRunning ? "Running…" : "Run both"}
-            </button>
-          </div>
-        </div>
-        {playgroundError ? (
-          <p className="mt-3 text-sm text-[var(--bad)]">{playgroundError}</p>
-        ) : null}
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <ProviderPanel
-            accent="jev"
-            title="Jev"
-            model="jev-latest"
-            result={playground.jev}
-            questions={questions}
-          />
-          <ProviderPanel
-            accent="openai"
-            title="OpenAI"
-            model="gpt-6-luna"
-            result={playground.openai}
-            questions={questions}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)]/85 p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section className="rounded-[32px] bg-[var(--panel)] p-8 sm:p-10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-xl font-semibold">Labeled benchmark</h2>
-            <p className="text-sm text-[var(--muted)]">
-              {completed}/{BENCHMARK_CASES.length} cases · 24 tickets, boolean / choice / score
+            <p className="text-[15px] font-medium text-[var(--muted)]">Step 2 · scored</p>
+            <h2 className="mt-2 text-[34px] leading-none font-semibold tracking-tight">Score 24 cases</h2>
+            <p className="mt-3 max-w-xl text-[19px] leading-7 text-[var(--muted)]">
+              {completed}/{BENCHMARK_CASES.length} done. Text only, with gold labels.
+              Click a row for the full ticket.
             </p>
           </div>
           <button
             type="button"
             onClick={() => void runBenchmark()}
             disabled={benchRunning}
-            className="rounded-xl border border-[var(--line)] bg-[var(--bg)] px-5 py-3 text-sm font-semibold disabled:opacity-50"
+            className="rounded-full bg-[var(--btn)] px-8 py-3.5 text-[17px] font-semibold text-[var(--on-btn)] disabled:opacity-40"
           >
             {benchRunning ? "Scoring…" : "Run all 24"}
           </button>
         </div>
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="text-[11px] tracking-[0.16em] text-[var(--muted)] uppercase">
-              <tr>
-                <th className="pb-3 font-medium">Case</th>
-                <th className="pb-3 font-medium">Gold</th>
-                <th className="pb-3 font-medium text-[var(--jev)]">Jev</th>
-                <th className="pb-3 font-medium text-[var(--openai)]">OpenAI</th>
-                <th className="pb-3 font-medium">Winner</th>
+        <div className="mt-8 overflow-x-auto">
+          <table className="w-full min-w-[820px] text-left">
+            <thead>
+              <tr className="border-b border-[var(--line)]">
+                <th className="sticky left-0 bg-[var(--panel)] pb-4 pr-6 text-[15px] font-medium text-[var(--muted)]">
+                  Case
+                </th>
+                <th className="pb-4 text-[15px] font-medium text-[var(--muted)]">Gold</th>
+                <th className="pb-4 pr-4">
+                  <ProviderMark id="jev" size="sm" />
+                </th>
+                <th className="pb-4 pr-4">
+                  <ProviderMark id="laya" size="sm" />
+                </th>
+                <th className="pb-4 pr-4">
+                  <ProviderMark id="openai" size="sm" />
+                </th>
+                <th className="pb-4 text-[15px] font-medium text-[var(--muted)]">Lead</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => {
-                const winner = pickWinner(row.jev, row.openai);
+                const leader = pickLeaders([row.jev, row.laya, row.openai]);
+                const open = () =>
+                  setDrawer({
+                    title: row.testCase.title,
+                    input: row.testCase.input,
+                    questions: row.testCase.questions,
+                    gold: row.testCase.gold,
+                    jev: row.jev,
+                    laya: row.laya,
+                    openai: row.openai,
+                  });
                 return (
                   <tr
                     key={row.testCase.id}
-                    className="cursor-pointer border-t border-[var(--line)] hover:bg-white/5"
-                    onClick={() =>
-                      setDrawer({
-                        title: row.testCase.title,
-                        input: row.testCase.input,
-                        questions: row.testCase.questions,
-                        gold: row.testCase.gold,
-                        jev: row.jev,
-                        openai: row.openai,
-                      })
-                    }
+                    role="button"
+                    tabIndex={0}
+                    className="group cursor-pointer border-b border-[var(--line)] last:border-0 hover:bg-[var(--bg)]"
+                    onClick={open}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        open();
+                      }
+                    }}
                   >
-                    <td className="py-3 pr-3">
-                      <p className="font-medium">{row.testCase.title}</p>
-                      <p className="max-w-xs truncate text-xs text-[var(--muted)]">
-                        {row.testCase.input}
-                      </p>
+                    <td className="sticky left-0 bg-[var(--panel)] py-5 pr-6 text-[18px] font-medium tracking-tight group-hover:bg-[var(--bg)]">
+                      {row.testCase.title}
                     </td>
-                    <td className="tabular py-3 pr-3 text-[var(--muted)]">
+                    <td className="tabular py-5 pr-6 text-[16px] text-[var(--muted)]">
                       {row.testCase.gold
-                        .map((label) => label.choice ?? (label.boolean === undefined ? label.scoreLevel : label.boolean ? "yes" : "no"))
+                        .map((label) =>
+                          label.choice ??
+                          (label.boolean === undefined ? label.scoreLevel : label.boolean ? "yes" : "no"),
+                        )
                         .join(" · ")}
                     </td>
-                    <td className="tabular py-3 pr-3">
+                    <td className="tabular py-5 pr-4 text-[16px]">
                       <ResultCell result={row.jev} />
                     </td>
-                    <td className="tabular py-3 pr-3">
+                    <td className="tabular py-5 pr-4 text-[16px]">
+                      <ResultCell result={row.laya} />
+                    </td>
+                    <td className="tabular py-5 pr-4 text-[16px]">
                       <ResultCell result={row.openai} />
                     </td>
-                    <td className="py-3">
-                      <span
-                        className={
-                          winner === "jev"
-                            ? "text-[var(--jev)]"
-                            : winner === "openai"
-                              ? "text-[var(--openai)]"
-                              : "text-[var(--muted)]"
-                        }
-                      >
-                        {winnerLabel(winner)}
-                      </span>
+                    <td className="py-5 text-[16px] font-medium" style={{ color: leaderColor(leader.ids) }}>
+                      {leaderLabel(leader)}
                     </td>
                   </tr>
                 );
@@ -348,23 +251,23 @@ export function Dashboard() {
         </div>
       </section>
 
+      <Scoreboard jev={liveSummaries.jev} laya={liveSummaries.laya} openai={liveSummaries.openai} />
+
       {drawer ? <CaseDrawer {...drawer} onClose={() => setDrawer(null)} /> : null}
-    </main>
+    </PageShell>
   );
 }
 
-function KeyPill({ name, ok }: { name: string; ok: boolean }) {
+function DocLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link
-      href="/settings"
-      className="rounded-full border border-[var(--line)] bg-[var(--bg-2)] px-3 py-1 text-xs hover:border-white/20"
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-[var(--text)] underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--text)]"
     >
-      <span
-        className="mr-2 inline-block h-2 w-2 rounded-full"
-        style={{ background: ok ? "var(--good)" : "var(--bad)" }}
-      />
-      {name} {ok ? "key" : "missing"}
-    </Link>
+      {children}
+    </a>
   );
 }
 
@@ -372,13 +275,16 @@ function ResultCell({ result }: { result?: ScoredProviderResult }) {
   if (!result) {
     return <span className="text-[var(--muted)]">—</span>;
   }
+  if (result.unsupported) {
+    return <span className="text-[var(--muted)]">N/A</span>;
+  }
   if (!result.ok) {
     return <span className="text-[var(--bad)]">{result.configured ? "error" : "no key"}</span>;
   }
   return (
     <span>
       {result.answers.map(formatAnswer).join(" · ")}
-      <span className="ml-2 text-[11px] text-[var(--muted)]">
+      <span className="mt-1 block text-[13px] text-[var(--muted)]">
         {formatMs(result.latencyMs)} · {formatUsd(result.costUsd)}
       </span>
     </span>

@@ -1,20 +1,21 @@
-import { SiteNav } from "@/components/site-nav";
+import { PageShell } from "@/components/page-shell";
 import { SettingsForm } from "@/components/settings-form";
 
 export default function SettingsPage() {
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8">
-      <header className="flex flex-col gap-4 border-b border-[var(--line)] pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Add API keys to run live comparisons. Nothing on this page is committed
-            to the repository.
-          </p>
-        </div>
-        <SiteNav />
+    <PageShell>
+      <header className="max-w-2xl">
+        <h1 className="text-[52px] leading-[1.05] font-semibold tracking-tight sm:text-[64px]">
+          Keys
+        </h1>
+        <p className="mt-6 text-[21px] leading-8 text-[var(--muted)]">
+          Add API keys to run live comparisons. Nothing on this page is committed
+          to the repository.
+        </p>
       </header>
-      <SettingsForm />
-    </main>
+      <section className="rounded-[32px] bg-[var(--panel)] p-8 sm:p-10">
+        <SettingsForm />
+      </section>
+    </PageShell>
   );
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  pickWinner,
+  pickLeaders,
   percentile,
   scoreAnswer,
   scoreProviderResult,
@@ -18,6 +18,7 @@ import type { CanonicalCase, ProviderResult } from "./types";
 describe("costUsd", () => {
   it("uses published input rates and ignores empty usage", () => {
     assert.equal(costUsd("jev", 1_000_000), 0.042);
+    assert.equal(costUsd("laya", 1_000_000), 0.0357);
     assert.equal(costUsd("openai", 1_000_000), 0.1);
     assert.equal(costUsd("jev", 0), 0);
   });
@@ -168,8 +169,8 @@ describe("percentile", () => {
   });
 });
 
-describe("pickWinner", () => {
-  it("prefers the more accurate side and ties on equal accuracy", () => {
+describe("pickLeaders", () => {
+  it("ranks three providers and ties on equal accuracy", () => {
     const jev = {
       provider: "jev" as const,
       model: "jev",
@@ -183,12 +184,15 @@ describe("pickWinner", () => {
       correctCount: 2,
       scoredCount: 2,
     };
-    const openai = {
-      ...jev,
-      provider: "openai" as const,
-      correctCount: 1,
-    };
-    assert.equal(pickWinner(jev, openai), "jev");
-    assert.equal(pickWinner(jev, { ...openai, correctCount: 2 }), "tie");
+    const laya = { ...jev, provider: "laya" as const, correctCount: 2 };
+    const openai = { ...jev, provider: "openai" as const, correctCount: 1 };
+    assert.deepEqual(pickLeaders([jev, laya, openai]), {
+      kind: "tie",
+      ids: ["jev", "laya"],
+    });
+    assert.deepEqual(pickLeaders([jev, { ...laya, correctCount: 1 }, openai]), {
+      kind: "single",
+      ids: ["jev"],
+    });
   });
 });

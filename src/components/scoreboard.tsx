@@ -1,5 +1,6 @@
 import { formatMs, formatNumber, formatPct, formatUsd } from "@/lib/format";
 import type { ProviderSummary } from "@/lib/types";
+import { ProviderMark } from "./provider-mark";
 
 function emptySummary(provider: ProviderSummary["provider"]): ProviderSummary {
   return {
@@ -20,110 +21,147 @@ function emptySummary(provider: ProviderSummary["provider"]): ProviderSummary {
   };
 }
 
-function SplitStat({
-  label,
-  jev,
-  openai,
-  hint,
-}: {
-  label: string;
-  jev: string;
-  openai: string;
-  hint?: string;
-}) {
-  return (
-    <article className="rounded-2xl border border-[var(--line)] bg-[var(--panel)]/90 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
-      <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--muted)] uppercase">
-        {label}
-      </p>
-      {hint ? <p className="mt-1 text-xs text-[var(--muted)]">{hint}</p> : null}
-      <div className="mt-5 grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-[11px] tracking-wide text-[var(--jev)]">Jev</p>
-          <p className="tabular mt-1 text-4xl font-semibold tracking-tight text-[var(--jev)] sm:text-5xl">
-            {jev}
-          </p>
-        </div>
-        <div>
-          <p className="text-[11px] tracking-wide text-[var(--openai)]">OpenAI</p>
-          <p className="tabular mt-1 text-4xl font-semibold tracking-tight text-[var(--openai)] sm:text-5xl">
-            {openai}
-          </p>
-        </div>
-      </div>
-    </article>
-  );
+function dash(summary: ProviderSummary, value: string) {
+  return summary.runCount === 0 ? "—" : value;
 }
 
 export function Scoreboard({
   jev,
+  laya,
   openai,
 }: {
   jev?: ProviderSummary;
+  laya?: ProviderSummary;
   openai?: ProviderSummary;
 }) {
   const j = jev ?? emptySummary("jev");
+  const l = laya ?? emptySummary("laya");
   const o = openai ?? emptySummary("openai");
+  const ready = j.runCount > 0 || l.runCount > 0 || o.runCount > 0;
+
+  const hero: Array<{ label: string; hint: string; jev: string; laya: string; openai: string }> = [
+    {
+      label: "Reads",
+      hint: "Not a score",
+      jev: "Text",
+      laya: "Text",
+      openai: "Text + photo",
+    },
+    {
+      label: "Price",
+      hint: "Input tokens",
+      jev: dash(j, formatUsd(j.totalUsd)),
+      laya: dash(l, formatUsd(l.totalUsd)),
+      openai: dash(o, formatUsd(o.totalUsd)),
+    },
+    {
+      label: "Correct",
+      hint: ready
+        ? `${j.correctCount}/${j.scoredCount} · ${l.correctCount}/${l.scoredCount} · ${o.correctCount}/${o.scoredCount}`
+        : "Gold labels",
+      jev: dash(j, formatPct(j.accuracy)),
+      laya: dash(l, formatPct(l.accuracy)),
+      openai: dash(o, formatPct(o.accuracy)),
+    },
+    {
+      label: "Latency",
+      hint: "Mean round trip",
+      jev: dash(j, formatMs(j.meanLatencyMs)),
+      laya: dash(l, formatMs(l.meanLatencyMs)),
+      openai: dash(o, formatMs(o.meanLatencyMs)),
+    },
+  ];
+
+  const detail: Array<{ label: string; jev: string; laya: string; openai: string }> = [
+    {
+      label: "p95",
+      jev: dash(j, formatMs(j.p95LatencyMs)),
+      laya: dash(l, formatMs(l.p95LatencyMs)),
+      openai: dash(o, formatMs(o.p95LatencyMs)),
+    },
+    {
+      label: "Tokens",
+      jev: dash(j, formatNumber(j.meanTokens, 0)),
+      laya: dash(l, formatNumber(l.meanTokens, 0)),
+      openai: dash(o, formatNumber(o.meanTokens, 0)),
+    },
+    {
+      label: "Schema",
+      jev: dash(j, formatPct(j.schemaValidPct)),
+      laya: dash(l, formatPct(l.schemaValidPct)),
+      openai: dash(o, formatPct(o.schemaValidPct)),
+    },
+    {
+      label: "Misses",
+      jev: dash(j, `${j.errorCount} / ${j.refusalCount}`),
+      laya: dash(l, `${l.errorCount} / ${l.refusalCount}`),
+      openai: dash(o, `${o.errorCount} / ${o.refusalCount}`),
+    },
+    {
+      label: "Brier",
+      jev: j.meanBrier === null ? "—" : formatNumber(j.meanBrier, 3),
+      laya: l.meanBrier === null ? "—" : formatNumber(l.meanBrier, 3),
+      openai: o.meanBrier === null ? "—" : formatNumber(o.meanBrier, 3),
+    },
+  ];
 
   return (
-    <section className="grid gap-4 lg:grid-cols-3">
-      <SplitStat
-        label="Price"
-        hint="Estimated from billed input tokens"
-        jev={formatUsd(j.totalUsd)}
-        openai={formatUsd(o.totalUsd)}
-      />
-      <SplitStat
-        label="Correctness"
-        hint={
-          j.scoredCount || o.scoredCount
-            ? `${j.correctCount}/${j.scoredCount} vs ${o.correctCount}/${o.scoredCount}`
-            : "Needs labeled benchmark answers"
-        }
-        jev={formatPct(j.accuracy)}
-        openai={formatPct(o.accuracy)}
-      />
-      <SplitStat
-        label="Latency"
-        hint={`p95 ${formatMs(j.p95LatencyMs)} vs ${formatMs(o.p95LatencyMs)}`}
-        jev={formatMs(j.meanLatencyMs)}
-        openai={formatMs(o.meanLatencyMs)}
-      />
-      <div className="grid grid-cols-2 gap-3 lg:col-span-3 sm:grid-cols-4">
-        <Chip label="Mean tokens" jev={formatNumber(j.meanTokens, 0)} openai={formatNumber(o.meanTokens, 0)} />
-        <Chip label="Schema valid" jev={formatPct(j.schemaValidPct)} openai={formatPct(o.schemaValidPct)} />
-        <Chip
-          label="Errors / refusals"
-          jev={`${j.errorCount} / ${j.refusalCount}`}
-          openai={`${o.errorCount} / ${o.refusalCount}`}
-        />
-        <Chip
-          label="Brier (boolean)"
-          jev={j.meanBrier === null ? "—" : formatNumber(j.meanBrier, 3)}
-          openai={o.meanBrier === null ? "—" : formatNumber(o.meanBrier, 3)}
-        />
+    <section className="overflow-hidden rounded-[32px] bg-[var(--panel)]">
+      <div className="px-8 pt-10 pb-6 sm:px-10">
+        <h2 className="text-[34px] leading-none font-semibold tracking-tight">Scoreboard</h2>
+        <p className="mt-3 max-w-2xl text-[19px] leading-7 text-[var(--muted)]">
+          {ready
+            ? "Filled by the labeled run. Photos never count here."
+            : "Empty until you score the 24 labeled tickets. Photos never count here."}
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left">
+          <thead>
+            <tr className="border-t border-[var(--line)]">
+              <th className="w-[22%] px-8 py-5 text-[15px] font-medium text-[var(--muted)] sm:px-10">
+                Metric
+              </th>
+              <th className="px-4 py-5">
+                <ProviderMark id="jev" />
+              </th>
+              <th className="px-4 py-5">
+                <ProviderMark id="laya" />
+              </th>
+              <th className="px-4 py-5 pr-8 sm:pr-10">
+                <ProviderMark id="openai" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {hero.map((row) => (
+              <tr key={row.label} className="border-t border-[var(--line)]">
+                <th className="px-8 py-6 align-top sm:px-10">
+                  <p className="text-[19px] font-semibold">{row.label}</p>
+                  <p className="mt-1 text-[15px] leading-5 font-normal text-[var(--muted)]">{row.hint}</p>
+                </th>
+                <td className="tabular px-4 py-6 text-[32px] leading-none font-semibold tracking-tight">
+                  {row.jev}
+                </td>
+                <td className="tabular px-4 py-6 text-[32px] leading-none font-semibold tracking-tight">
+                  {row.laya}
+                </td>
+                <td className="tabular px-4 py-6 pr-8 text-[32px] leading-none font-semibold tracking-tight sm:pr-10">
+                  {row.openai}
+                </td>
+              </tr>
+            ))}
+            {detail.map((row) => (
+              <tr key={row.label} className="border-t border-[var(--line)]">
+                <th className="px-8 py-4 text-[16px] font-medium text-[var(--muted)] sm:px-10">{row.label}</th>
+                <td className="tabular px-4 py-4 text-[18px] font-medium">{row.jev}</td>
+                <td className="tabular px-4 py-4 text-[18px] font-medium">{row.laya}</td>
+                <td className="tabular px-4 py-4 pr-8 text-[18px] font-medium sm:pr-10">{row.openai}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
-  );
-}
-
-function Chip({
-  label,
-  jev,
-  openai,
-}: {
-  label: string;
-  jev: string;
-  openai: string;
-}) {
-  return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/80 px-4 py-3">
-      <p className="text-[11px] tracking-[0.16em] text-[var(--muted)] uppercase">{label}</p>
-      <p className="tabular mt-2 text-sm">
-        <span className="text-[var(--jev)]">{jev}</span>
-        <span className="mx-2 text-[var(--muted)]">·</span>
-        <span className="text-[var(--openai)]">{openai}</span>
-      </p>
-    </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   type StoredKeys,
 } from "@/lib/client-keys";
 
-type EnvConfigured = { jev: boolean; openai: boolean };
+type EnvConfigured = { jev: boolean; laya: boolean; openai: boolean };
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -28,7 +28,7 @@ function useStoredKeys(): StoredKeys {
 
 export function SettingsForm() {
   const initial = useStoredKeys();
-  const [env, setEnv] = useState<EnvConfigured>({ jev: false, openai: false });
+  const [env, setEnv] = useState<EnvConfigured>({ jev: false, laya: false, openai: false });
   const [saved, setSaved] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
@@ -48,6 +48,7 @@ export function SettingsForm() {
     const data = new FormData(event.currentTarget);
     writeStoredKeys({
       typesafe: String(data.get("typesafe") ?? ""),
+      laya: String(data.get("laya") ?? ""),
       openai: String(data.get("openai") ?? ""),
     });
     setSaved(true);
@@ -62,68 +63,78 @@ export function SettingsForm() {
   }
 
   return (
-    <form key={formKey} onSubmit={save} className="mt-8 max-w-xl space-y-6">
-      <p className="text-sm leading-6 text-[var(--muted)]">
-        Keys saved here stay in this browser only. They are sent to this app’s
-        server for each run, never written to git. You can also set
-        <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[var(--text)]">
-          TYPESAFE_API_KEY
-        </code>
-        and
-        <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[var(--text)]">
-          OPENAI_API_KEY
-        </code>
-        in <code className="rounded bg-black/30 px-1.5 py-0.5">.env.local</code>.
-        A key from Settings overrides env for that provider.
+    <form key={formKey} onSubmit={save} className="max-w-xl space-y-8">
+      <p className="text-[19px] leading-8 text-[var(--muted)]">
+        Keys stay in this browser and are sent only when you run a comparison.
+        You can also put them in .env.local. A key from this page overrides env
+        for that model.
       </p>
-      <label className="block">
-        <span className="text-[11px] tracking-[0.18em] text-[var(--muted)] uppercase">
-          TypeSafe / Jev key
-        </span>
-        <input
-          name="typesafe"
-          type="password"
-          autoComplete="off"
-          defaultValue={initial.typesafe}
-          placeholder={env.jev ? "Server env is set — paste here to override" : "sk_… or ts_…"}
-          className="mt-2 w-full rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-3 text-sm outline-none focus:border-[var(--jev)]"
-        />
-        <span className="mt-2 block text-xs text-[var(--muted)]">
-          {env.jev ? "Env fallback is configured." : "No env fallback for TypeSafe."}
-        </span>
-      </label>
-      <label className="block">
-        <span className="text-[11px] tracking-[0.18em] text-[var(--muted)] uppercase">
-          OpenAI key
-        </span>
-        <input
-          name="openai"
-          type="password"
-          autoComplete="off"
-          defaultValue={initial.openai}
-          placeholder={env.openai ? "Server env is set — paste here to override" : "sk-…"}
-          className="mt-2 w-full rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-3 text-sm outline-none focus:border-[var(--openai)]"
-        />
-        <span className="mt-2 block text-xs text-[var(--muted)]">
-          {env.openai ? "Env fallback is configured." : "No env fallback for OpenAI."}
-        </span>
-      </label>
+      <Field
+        name="typesafe"
+        label="TypeSafe · Jev"
+        defaultValue={initial.typesafe}
+        placeholder={env.jev ? "Env is set — paste here to override" : "sk_… or ts_…"}
+        hint={env.jev ? "Server fallback is ready." : "No server fallback."}
+      />
+      <Field
+        name="laya"
+        label="Laya"
+        defaultValue={initial.laya}
+        placeholder={env.laya ? "Env is set — paste here to override" : "lsk_live_…"}
+        hint={env.laya ? "Server fallback is ready." : "No server fallback."}
+      />
+      <Field
+        name="openai"
+        label="OpenAI"
+        defaultValue={initial.openai}
+        placeholder={env.openai ? "Env is set — paste here to override" : "sk-…"}
+        hint={env.openai ? "Server fallback is ready." : "No server fallback."}
+      />
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black"
+          className="rounded-full bg-[var(--btn)] px-8 py-3.5 text-[17px] font-semibold text-[var(--on-btn)]"
         >
           Save in this browser
         </button>
         <button
           type="button"
           onClick={clear}
-          className="rounded-xl border border-[var(--line)] px-5 py-3 text-sm text-[var(--muted)] hover:text-white"
+          className="rounded-full bg-[var(--bg)] px-8 py-3.5 text-[17px] text-[var(--muted)] hover:text-[var(--text)]"
         >
           Clear saved keys
         </button>
-        {saved ? <p className="self-center text-sm text-[var(--good)]">Saved.</p> : null}
+        {saved ? <p className="self-center text-[17px] text-[var(--good)]">Saved.</p> : null}
       </div>
     </form>
+  );
+}
+
+function Field({
+  name,
+  label,
+  defaultValue,
+  placeholder,
+  hint,
+}: {
+  name: string;
+  label: string;
+  defaultValue: string;
+  placeholder: string;
+  hint: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[17px] font-semibold">{label}</span>
+      <input
+        name={name}
+        type="password"
+        autoComplete="off"
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        className="mt-2 h-14 w-full rounded-[18px] border border-[var(--line)] bg-[var(--panel)] px-5 text-[17px] outline-none focus:border-[var(--text)]/30"
+      />
+      <span className="mt-2 block text-[15px] text-[var(--muted)]">{hint}</span>
+    </label>
   );
 }

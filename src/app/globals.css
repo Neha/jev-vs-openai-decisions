@@ -1,19 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #07080c;
-  --bg-2: #0d1017;
-  --panel: #12161f;
-  --panel-2: #171c27;
-  --line: #2a3142;
-  --text: #eef2f8;
-  --muted: #8b93a7;
-  --jev: #e8b84a;
-  --jev-dim: rgba(232, 184, 74, 0.14);
-  --openai: #3dcaa0;
-  --openai-dim: rgba(61, 202, 160, 0.12);
-  --bad: #ff6b7a;
-  --good: #7dffb1;
+  --bg: #f5f5f7;
+  --bg-2: #fbfbfd;
+  --panel: #ffffff;
+  --panel-2: #f5f5f7;
+  --line: rgba(0, 0, 0, 0.08);
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --jev: #c2410c;
+  --jev-dim: rgba(194, 65, 12, 0.08);
+  --laya: #0f766e;
+  --laya-dim: rgba(15, 118, 110, 0.08);
+  --openai: #1d4ed8;
+  --openai-dim: rgba(29, 78, 216, 0.08);
+  --bad: #b42318;
+  --good: #0f7a4f;
+  --btn: #1d1d1f;
+  --on-btn: #f5f5f7;
 }
 
 * {
@@ -25,26 +29,32 @@ body {
   min-height: 100%;
   background: var(--bg);
   color: var(--text);
+  color-scheme: light;
 }
 
 body {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  background-image:
-    radial-gradient(circle at 12% -10%, rgba(232, 184, 74, 0.08), transparent 36%),
-    radial-gradient(circle at 88% 0%, rgba(61, 202, 160, 0.08), transparent 32%),
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: auto, auto, 48px 48px, 48px 48px;
-  background-position: 0 0, 0 0, 0 0, 0 0;
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.011em;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(255, 255, 255, 0.9), transparent 60%),
+    var(--bg);
 }
 
 button,
 select,
-textarea {
+textarea,
+input {
   font: inherit;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(29, 29, 31, 0.12);
 }

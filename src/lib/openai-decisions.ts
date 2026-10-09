@@ -25,42 +25,63 @@ type OpenAIQuestion =
       levels: { label: string; description: string }[];
     };
 
+export type OpenAIContentPart =
+  | { type: "input_text"; text: string }
+  | { type: "input_image"; image_url: string };
+
 export type OpenAIRequest = {
   model: string;
-  input: string;
+  input: string | { role: "user"; content: OpenAIContentPart[] }[];
   questions: OpenAIQuestion[];
 };
+
+function mappedQuestions(questions: CanonicalQuestion[]): OpenAIQuestion[] {
+  return questions.map((question): OpenAIQuestion => {
+    if (question.type === "boolean") {
+      return {
+        type: "predicate",
+        name: question.id,
+        instructions: question.instructions,
+      };
+    }
+    if (question.type === "choice") {
+      return {
+        type: "choice",
+        name: question.id,
+        instructions: question.instructions,
+        choices: question.options ?? [],
+      };
+    }
+    return {
+      type: "score",
+      name: question.id,
+      instructions: question.instructions,
+      levels: question.levels ?? [],
+    };
+  });
+}
 
 export function toOpenAIRequest(
   input: string,
   questions: CanonicalQuestion[],
+  image?: string,
 ): OpenAIRequest {
+  if (image) {
+    const content: OpenAIContentPart[] = [];
+    if (input.trim()) {
+      content.push({ type: "input_text", text: input });
+    }
+    content.push({ type: "input_image", image_url: image });
+    return {
+      model: OPENAI_MODEL,
+      input: [{ role: "user", content }],
+      questions: mappedQuestions(questions),
+    };
+  }
   return {
     model: OPENAI_MODEL,
     input,
-    questions: questions.map((question): OpenAIQuestion => {
-      if (question.type === "boolean") {
-        return {
-          type: "predicate",
-          name: question.id,
-          instructions: question.instructions,
-        };
-      }
-      if (question.type === "choice") {
-        return {
-          type: "choice",
-          name: question.id,
-          instructions: question.instructions,
-          choices: question.options ?? [],
-        };
-      }
-      return {
-        type: "score",
-        name: question.id,
-        instructions: question.instructions,
-        levels: question.levels ?? [],
-      };
-    }),
+    questions: mappedQuestions(questions),
   };
 }
 
@@ -207,6 +228,7 @@ export async function evaluateOpenAI(
   input: string,
   questions: CanonicalQuestion[],
   apiKey?: string,
+  image?: string,
 ): Promise<ProviderResult> {
   const key = apiKey?.trim();
   if (!key) {
@@ -219,7 +241,7 @@ export async function evaluateOpenAI(
     );
   }
 
-  const payload = toOpenAIRequest(input, questions);
+  const payload = toOpenAIRequest(input, questions, image);
   const started = performance.now();
   try {
     const response = await fetch(OPENAI_URL, {

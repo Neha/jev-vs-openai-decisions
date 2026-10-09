@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { fromJevResponse, toJevRequest } from "./jev";
+import { toLayaRequest } from "./laya";
 import { fromOpenAIResponse, toOpenAIRequest } from "./openai-decisions";
 import {
   DEPARTMENT_QUESTION,
@@ -90,6 +91,18 @@ describe("OpenAI adapter", () => {
     assert.equal(request.questions[0] && "choices" in request.questions[0], true);
   });
 
+  it("wraps an image as a user message with inline data URL parts", () => {
+    const image = "data:image/png;base64,abc123";
+    const request = toOpenAIRequest("Inspect this receipt.", questions, image);
+    assert.ok(Array.isArray(request.input));
+    const message = request.input[0];
+    assert.equal(message?.role, "user");
+    assert.deepEqual(message?.content, [
+      { type: "input_text", text: "Inspect this receipt." },
+      { type: "input_image", image_url: image },
+    ]);
+  });
+
   it("normalizes predicate, choice, score, and refusal answers", () => {
     const result = fromOpenAIResponse(
       {
@@ -140,5 +153,33 @@ describe("OpenAI adapter", () => {
     );
     assert.equal(refused.answers[0]?.refused, true);
     assert.equal(refused.answers[0]?.schemaValid, false);
+  });
+});
+
+describe("Laya adapter", () => {
+  it("sends the System One body without a Jev model id", () => {
+    const request = toLayaRequest("I was charged twice.", questions);
+    assert.equal(request.state, "I was charged twice.");
+    assert.equal("model" in request, false);
+    assert.equal(request.questions.department?.type, "choice");
+    assert.equal(request.questions.urgent?.type, "noul");
+  });
+
+  it("prices Laya answers at the Studio input rate", () => {
+    const result = fromJevResponse(
+      {
+        routing: { model: "english" },
+        answers: {
+          department: { type: "choice", choice: "billing" },
+        },
+        usage: { input_tokens: 1_000_000 },
+      },
+      [DEPARTMENT_QUESTION],
+      40,
+      "laya",
+    );
+    assert.equal(result.provider, "laya");
+    assert.equal(result.model, "english");
+    assert.ok(Math.abs(result.costUsd - 0.0357) < 1e-12);
   });
 });

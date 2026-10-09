@@ -7,12 +7,10 @@ const SOCIALS = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-[var(--line)] bg-[var(--bg-2)]/80">
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-6 text-xs leading-5 text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <p>
-          © 2026–2027 Neha Sharma. All rights reserved.
-        </p>
-        <nav aria-label="Author social links" className="flex flex-wrap gap-x-4 gap-y-2">
+    <footer className="border-t border-[var(--line)]">
+      <div className="mx-auto flex max-w-[1120px] flex-col gap-3 px-6 py-8 text-[15px] leading-6 text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between sm:px-10">
+        <p>© 2026–2027 Neha Sharma. All rights reserved.</p>
+        <nav aria-label="Author social links" className="flex flex-wrap gap-x-5 gap-y-2">
           {SOCIALS.map((item) => (
             <a
               key={item.href}

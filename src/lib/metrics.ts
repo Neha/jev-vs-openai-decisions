@@ -7,7 +7,8 @@ import type {
   ProviderSummary,
   ScoredAnswer,
   ScoredProviderResult,
-  Winner,
+  Leader,
+  ProviderId,
 } from "./types";
 
 export function emptyProviderResult(
@@ -34,6 +35,23 @@ export function emptyProviderResult(
       value: null,
       schemaValid: false,
     })),
+  };
+}
+
+export function unsupportedImageResult(
+  provider: ProviderResult["provider"],
+  model: string,
+  questions: CanonicalQuestion[],
+): ProviderResult {
+  return {
+    ...emptyProviderResult(
+      provider,
+      model,
+      "This provider accepts text only. Image tickets are OpenAI-only and not scored.",
+      true,
+      questions,
+    ),
+    unsupported: true,
   };
 }
 
@@ -204,27 +222,33 @@ export function summarize(
   };
 }
 
-export function pickWinner(
-  jev?: ScoredProviderResult,
-  openai?: ScoredProviderResult,
-): Winner {
-  if (!jev?.ok && !openai?.ok) {
-    return "none";
+function accuracy(result: ScoredProviderResult): number {
+  return result.scoredCount === 0 ? 0 : result.correctCount / result.scoredCount;
+}
+
+export function pickLeaders(
+  results: Array<ScoredProviderResult | undefined>,
+): Leader {
+  const ok = results.filter((result): result is ScoredProviderResult => Boolean(result?.ok));
+  if (ok.length === 0) {
+    return { kind: "none", ids: [] };
   }
-  if (jev?.ok && !openai?.ok) {
-    return "jev";
+  const best = Math.max(...ok.map(accuracy));
+  const ids = ok
+    .filter((result) => accuracy(result) === best)
+    .map((result) => result.provider);
+  return { kind: ids.length === 1 ? "single" : "tie", ids };
+}
+
+export function leaderColor(ids: ProviderId[]): string {
+  if (ids.length !== 1) {
+    return "var(--muted)";
   }
-  if (openai?.ok && !jev?.ok) {
-    return "openai";
+  if (ids[0] === "jev") {
+    return "var(--jev)";
   }
-  if (!jev || !openai) {
-    return "none";
+  if (ids[0] === "laya") {
+    return "var(--laya)";
   }
-  const jevAccuracy = jev.scoredCount === 0 ? 0 : jev.correctCount / jev.scoredCount;
-  const openaiAccuracy =
-    openai.scoredCount === 0 ? 0 : openai.correctCount / openai.scoredCount;
-  if (jevAccuracy !== openaiAccuracy) {
-    return jevAccuracy > openaiAccuracy ? "jev" : "openai";
-  }
-  return "tie";
+  return "var(--openai)";
 }

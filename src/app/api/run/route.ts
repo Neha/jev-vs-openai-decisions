@@ -1,3 +1,4 @@
+import { isImageDataUrl } from "@/lib/image";
 import { TEMPLATES, type TemplateId } from "@/lib/templates";
 import { keysFromRequest } from "@/lib/keys";
 import { runProviders } from "@/lib/run";
@@ -31,8 +32,15 @@ export async function POST(request: Request) {
 
   const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const input = typeof record.input === "string" ? record.input.trim() : "";
-  if (!input) {
-    return Response.json({ error: "input is required" }, { status: 400 });
+  const image = typeof record.image === "string" ? record.image.trim() : "";
+  if (image && !isImageDataUrl(image)) {
+    return Response.json(
+      { error: "image must be a PNG, JPEG, or WebP data URL under ~1MB" },
+      { status: 400 },
+    );
+  }
+  if (!input && !image) {
+    return Response.json({ error: "input or image is required" }, { status: 400 });
   }
 
   let questions: CanonicalQuestion[] | undefined;
@@ -49,6 +57,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await runProviders(input, questions, keysFromRequest(request));
-  return Response.json({ input, questions, ...result });
+  const result = await runProviders(
+    input,
+    questions,
+    keysFromRequest(request),
+    image || undefined,
+  );
+  return Response.json({ input, questions, image: Boolean(image), ...result });
 }

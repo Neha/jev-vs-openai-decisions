@@ -32,12 +32,14 @@ export async function POST(request: Request) {
       });
 
       const jevResults: ScoredProviderResult[] = [];
+      const layaResults: ScoredProviderResult[] = [];
       const openaiResults: ScoredProviderResult[] = [];
 
       for (const [index, testCase] of BENCHMARK_CASES.entries()) {
         try {
           const result = await runCase(testCase, keys);
           jevResults.push(result.jev);
+          layaResults.push(result.laya);
           openaiResults.push(result.openai);
           send({
             type: "case",
@@ -48,9 +50,11 @@ export async function POST(request: Request) {
             questions: testCase.questions,
             gold: testCase.gold,
             jev: result.jev,
+            laya: result.laya,
             openai: result.openai,
             summaries: {
               jev: summarize(jevResults, "jev"),
+              laya: summarize(layaResults, "laya"),
               openai: summarize(openaiResults, "openai"),
             },
           });
@@ -68,6 +72,7 @@ export async function POST(request: Request) {
         type: "done",
         summaries: {
           jev: summarize(jevResults, "jev"),
+          laya: summarize(layaResults, "laya"),
           openai: summarize(openaiResults, "openai"),
         },
       });
