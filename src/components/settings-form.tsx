@@ -9,7 +9,7 @@ import {
   type StoredKeys,
 } from "@/lib/client-keys";
 
-type EnvConfigured = { jev: boolean; laya: boolean; openai: boolean };
+type EnvConfigured = { jev: boolean; openai: boolean };
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -28,7 +28,7 @@ function useStoredKeys(): StoredKeys {
 
 export function SettingsForm() {
   const initial = useStoredKeys();
-  const [env, setEnv] = useState<EnvConfigured>({ jev: false, laya: false, openai: false });
+  const [env, setEnv] = useState<EnvConfigured>({ jev: false, openai: false });
   const [saved, setSaved] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
@@ -48,7 +48,6 @@ export function SettingsForm() {
     const data = new FormData(event.currentTarget);
     writeStoredKeys({
       typesafe: String(data.get("typesafe") ?? ""),
-      laya: String(data.get("laya") ?? ""),
       openai: String(data.get("openai") ?? ""),
     });
     setSaved(true);
@@ -75,13 +74,6 @@ export function SettingsForm() {
         defaultValue={initial.typesafe}
         placeholder={env.jev ? "Env is set — paste here to override" : "sk_… or ts_…"}
         hint={env.jev ? "Server fallback is ready." : "No server fallback."}
-      />
-      <Field
-        name="laya"
-        label="Laya"
-        defaultValue={initial.laya}
-        placeholder={env.laya ? "Env is set — paste here to override" : "lsk_live_…"}
-        hint={env.laya ? "Server fallback is ready." : "No server fallback."}
       />
       <Field
         name="openai"

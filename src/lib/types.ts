@@ -1,4 +1,4 @@
-export type ProviderId = "jev" | "laya" | "openai";
+export type ProviderId = "jev" | "openai";
 
 export type QuestionType = "boolean" | "choice" | "score";
 
@@ -57,7 +57,7 @@ export type ProviderResult = {
   configured: boolean;
   ok: boolean;
   error?: string;
-  /** True when this provider cannot accept the current input (e.g. Jev/Laya + image). */
+  /** True when this provider cannot accept the current input (e.g. Jev + image). */
   unsupported?: boolean;
   latencyMs: number;
   inputTokens: number;

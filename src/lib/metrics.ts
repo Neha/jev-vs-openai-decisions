@@ -240,15 +240,29 @@ export function pickLeaders(
   return { kind: ids.length === 1 ? "single" : "tie", ids };
 }
 
+export function pickSummaryLeaders(
+  summaries: Array<ProviderSummary | undefined>,
+): Leader {
+  const ready = summaries.filter(
+    (summary): summary is ProviderSummary =>
+      Boolean(summary && summary.runCount > 0 && summary.scoredCount > 0),
+  );
+  if (ready.length === 0) {
+    return { kind: "none", ids: [] };
+  }
+  const best = Math.max(...ready.map((summary) => summary.accuracy));
+  const ids = ready
+    .filter((summary) => summary.accuracy === best)
+    .map((summary) => summary.provider);
+  return { kind: ids.length === 1 ? "single" : "tie", ids };
+}
+
 export function leaderColor(ids: ProviderId[]): string {
-  if (ids.length !== 1) {
+  if (ids.length === 0) {
     return "var(--muted)";
   }
-  if (ids[0] === "jev") {
-    return "var(--jev)";
+  if (ids.length > 1) {
+    return "var(--tie, #6d28d9)";
   }
-  if (ids[0] === "laya") {
-    return "var(--laya)";
-  }
-  return "var(--openai)";
+  return ids[0] === "jev" ? "var(--jev)" : "var(--openai)";
 }

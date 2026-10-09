@@ -75,7 +75,6 @@ export function fromJevResponse(
   body: unknown,
   questions: CanonicalQuestion[],
   latencyMs: number,
-  provider: "jev" | "laya" = "jev",
 ): ProviderResult {
   const record = asRecord(body) ?? {};
   const answersRecord = asRecord(record.answers) ?? {};
@@ -83,9 +82,8 @@ export function fromJevResponse(
   const routing = asRecord(record.routing);
   const inputTokens = asNumber(usage.input_tokens) ?? 0;
   const outputTokens = asNumber(usage.output_tokens) ?? 0;
-  const fallback = provider === "laya" ? "laya" : JEV_MODEL;
   const model =
-    asString(record.model) ?? asString(routing?.model) ?? fallback;
+    asString(record.model) ?? asString(routing?.model) ?? JEV_MODEL;
 
   const answers: NormalizedAnswer[] = questions.map((question) => {
     const raw = asRecord(answersRecord[question.id]);
@@ -132,14 +130,14 @@ export function fromJevResponse(
   });
 
   return {
-    provider,
+    provider: "jev",
     model,
     configured: true,
     ok: true,
     latencyMs,
     inputTokens,
     outputTokens,
-    costUsd: costUsd(provider, inputTokens),
+    costUsd: costUsd("jev", inputTokens),
     answers,
     raw: body,
   };

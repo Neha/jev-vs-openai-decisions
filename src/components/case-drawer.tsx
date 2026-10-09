@@ -14,7 +14,6 @@ export function CaseDrawer({
   questions,
   gold,
   jev,
-  laya,
   openai,
   onClose,
 }: {
@@ -23,7 +22,6 @@ export function CaseDrawer({
   questions: readonly CanonicalQuestion[];
   gold: GoldLabel[];
   jev?: ScoredProviderResult;
-  laya?: ScoredProviderResult;
   openai?: ScoredProviderResult;
   onClose: () => void;
 }) {
@@ -45,9 +43,8 @@ export function CaseDrawer({
           </button>
         </div>
         <p className="mt-5 max-w-3xl text-[19px] leading-8 text-[var(--muted)]">{input}</p>
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
           <ProviderDetail id="jev" result={jev} questions={questions} gold={gold} />
-          <ProviderDetail id="laya" result={laya} questions={questions} gold={gold} />
           <ProviderDetail id="openai" result={openai} questions={questions} gold={gold} />
         </div>
       </aside>

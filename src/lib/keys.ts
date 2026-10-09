@@ -1,12 +1,10 @@
 export type RequestKeys = {
   jev?: string;
-  laya?: string;
   openai?: string;
 };
 
 export type Configured = {
   jev: boolean;
-  laya: boolean;
   openai: boolean;
 };
 
@@ -28,10 +26,6 @@ export function keysFromRequest(request: Request): RequestKeys {
       request.headers.get("x-typesafe-api-key"),
       process.env.TYPESAFE_API_KEY,
     ),
-    laya: resolveProviderKey(
-      request.headers.get("x-laya-api-key"),
-      process.env.LAYA_API_KEY,
-    ),
     openai: resolveProviderKey(
       request.headers.get("x-openai-api-key"),
       process.env.OPENAI_API_KEY,
@@ -42,7 +36,6 @@ export function keysFromRequest(request: Request): RequestKeys {
 export function configuredFromKeys(keys: RequestKeys): Configured {
   return {
     jev: Boolean(keys.jev),
-    laya: Boolean(keys.laya),
     openai: Boolean(keys.openai),
   };
 }
@@ -50,7 +43,6 @@ export function configuredFromKeys(keys: RequestKeys): Configured {
 export function envConfigured(): Configured {
   return {
     jev: Boolean(process.env.TYPESAFE_API_KEY?.trim()),
-    laya: Boolean(process.env.LAYA_API_KEY?.trim()),
     openai: Boolean(process.env.OPENAI_API_KEY?.trim()),
   };
 }

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Same Ticket",
   description:
-    "Three decision models. One support ticket. Live comparison of Jev, Laya, and OpenAI on price, correctness, and latency.",
+    "Two decision models. One support ticket. Live comparison of Jev and OpenAI Decisions on price, correctness, and latency.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

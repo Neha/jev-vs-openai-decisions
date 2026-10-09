@@ -2,9 +2,9 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { BENCHMARK_CASES } from "@/data/benchmark";
-import { formatAnswer, leaderLabel } from "@/lib/display";
+import { formatAnswer } from "@/lib/display";
 import { formatMs, formatUsd } from "@/lib/format";
-import { leaderColor, pickLeaders, summarize } from "@/lib/metrics";
+import { pickLeaders, summarize } from "@/lib/metrics";
 import type {
   CanonicalCase,
   CanonicalQuestion,
@@ -14,17 +14,17 @@ import type {
 } from "@/lib/types";
 import { apiKeyHeaders } from "@/lib/client-keys";
 import { CaseDrawer } from "./case-drawer";
+import { LeadMark } from "./lead-mark";
 import { PageShell } from "./page-shell";
 import { Playground } from "./playground";
 import { ProviderMark } from "./provider-mark";
 import { Scoreboard } from "./scoreboard";
 
-type Configured = { jev: boolean; laya: boolean; openai: boolean };
+type Configured = { jev: boolean; openai: boolean };
 
 type BenchRow = {
   testCase: CanonicalCase;
   jev?: ScoredProviderResult;
-  laya?: ScoredProviderResult;
   openai?: ScoredProviderResult;
 };
 
@@ -34,7 +34,6 @@ type DrawerState = {
   questions: readonly CanonicalQuestion[];
   gold: GoldLabel[];
   jev?: ScoredProviderResult;
-  laya?: ScoredProviderResult;
   openai?: ScoredProviderResult;
 };
 
@@ -46,23 +45,20 @@ export function Dashboard() {
   const [completed, setCompleted] = useState(0);
   const [summaries, setSummaries] = useState<{
     jev?: ProviderSummary;
-    laya?: ProviderSummary;
     openai?: ProviderSummary;
   }>({});
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
 
   const liveSummaries = useMemo(() => {
-    if (summaries.jev && summaries.laya && summaries.openai) {
+    if (summaries.jev && summaries.openai) {
       return summaries;
     }
     const jev = rows.map((row) => row.jev).filter((value): value is ScoredProviderResult => Boolean(value));
-    const laya = rows.map((row) => row.laya).filter((value): value is ScoredProviderResult => Boolean(value));
     const openai = rows
       .map((row) => row.openai)
       .filter((value): value is ScoredProviderResult => Boolean(value));
     return {
       jev: jev.length ? summarize(jev, "jev") : summaries.jev,
-      laya: laya.length ? summarize(laya, "laya") : summaries.laya,
       openai: openai.length ? summarize(openai, "openai") : summaries.openai,
     };
   }, [rows, summaries]);
@@ -105,15 +101,14 @@ export function Dashboard() {
             questions?: CanonicalQuestion[];
             gold?: GoldLabel[];
             jev?: ScoredProviderResult;
-            laya?: ScoredProviderResult;
             openai?: ScoredProviderResult;
-            summaries?: { jev: ProviderSummary; laya: ProviderSummary; openai: ProviderSummary };
+            summaries?: { jev: ProviderSummary; openai: ProviderSummary };
           };
-          if (event.type === "case" && event.caseId && event.jev && event.laya && event.openai) {
+          if (event.type === "case" && event.caseId && event.jev && event.openai) {
             setRows((current) =>
               current.map((row) =>
                 row.testCase.id === event.caseId
-                  ? { ...row, jev: event.jev, laya: event.laya, openai: event.openai }
+                  ? { ...row, jev: event.jev, openai: event.openai }
                   : row,
               ),
             );
@@ -136,14 +131,12 @@ export function Dashboard() {
     <PageShell>
       <header className="max-w-3xl">
         <h1 className="text-[52px] leading-[1.05] font-semibold tracking-tight sm:text-[64px]">
-          Three models.
+          Two models.
           <br />
           One ticket.
         </h1>
         <p className="mt-6 text-[21px] leading-8 text-[var(--muted)]">
-          <DocLink href="https://docs.typesafe.ai/api">Jev</DocLink> and{" "}
-          <DocLink href="https://laya.studio/docs">Laya</DocLink> share System One
-          and read text.{" "}
+          <DocLink href="https://docs.typesafe.ai/api">Jev</DocLink> reads text.{" "}
           <DocLink href="https://developers.openai.com/api/docs/guides/decisions">
             OpenAI Decisions
           </DocLink>{" "}
@@ -174,7 +167,7 @@ export function Dashboard() {
           </button>
         </div>
         <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left">
+          <table className="w-full min-w-[720px] text-left">
             <thead>
               <tr className="border-b border-[var(--line)]">
                 <th className="sticky left-0 bg-[var(--panel)] pb-4 pr-6 text-[15px] font-medium text-[var(--muted)]">
@@ -185,9 +178,6 @@ export function Dashboard() {
                   <ProviderMark id="jev" size="sm" />
                 </th>
                 <th className="pb-4 pr-4">
-                  <ProviderMark id="laya" size="sm" />
-                </th>
-                <th className="pb-4 pr-4">
                   <ProviderMark id="openai" size="sm" />
                 </th>
                 <th className="pb-4 text-[15px] font-medium text-[var(--muted)]">Lead</th>
@@ -195,7 +185,7 @@ export function Dashboard() {
             </thead>
             <tbody>
               {rows.map((row) => {
-                const leader = pickLeaders([row.jev, row.laya, row.openai]);
+                const leader = pickLeaders([row.jev, row.openai]);
                 const open = () =>
                   setDrawer({
                     title: row.testCase.title,
@@ -203,7 +193,6 @@ export function Dashboard() {
                     questions: row.testCase.questions,
                     gold: row.testCase.gold,
                     jev: row.jev,
-                    laya: row.laya,
                     openai: row.openai,
                   });
                 return (
@@ -235,13 +224,10 @@ export function Dashboard() {
                       <ResultCell result={row.jev} />
                     </td>
                     <td className="tabular py-5 pr-4 text-[16px]">
-                      <ResultCell result={row.laya} />
-                    </td>
-                    <td className="tabular py-5 pr-4 text-[16px]">
                       <ResultCell result={row.openai} />
                     </td>
-                    <td className="py-5 text-[16px] font-medium" style={{ color: leaderColor(leader.ids) }}>
-                      {leaderLabel(leader)}
+                    <td className="py-5">
+                      <LeadMark leader={leader} size="sm" />
                     </td>
                   </tr>
                 );
@@ -251,7 +237,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      <Scoreboard jev={liveSummaries.jev} laya={liveSummaries.laya} openai={liveSummaries.openai} />
+      <Scoreboard jev={liveSummaries.jev} openai={liveSummaries.openai} />
 
       {drawer ? <CaseDrawer {...drawer} onClose={() => setDrawer(null)} /> : null}
     </PageShell>

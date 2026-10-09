@@ -2,7 +2,6 @@ import type { Leader, NormalizedAnswer, ProviderId } from "./types";
 
 export const PROVIDER_LABEL: Record<ProviderId, string> = {
   jev: "Jev",
-  laya: "Laya",
   openai: "OpenAI",
 };
 

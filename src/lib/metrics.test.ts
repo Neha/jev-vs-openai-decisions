@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  leaderColor,
   pickLeaders,
+  pickSummaryLeaders,
   percentile,
   scoreAnswer,
   scoreProviderResult,
@@ -13,12 +15,11 @@ import {
   SEVERITY_QUESTION,
   URGENCY_QUESTION,
 } from "./templates";
-import type { CanonicalCase, ProviderResult } from "./types";
+import type { CanonicalCase, ProviderResult, ProviderSummary } from "./types";
 
 describe("costUsd", () => {
   it("uses published input rates and ignores empty usage", () => {
     assert.equal(costUsd("jev", 1_000_000), 0.042);
-    assert.equal(costUsd("laya", 1_000_000), 0.0357);
     assert.equal(costUsd("openai", 1_000_000), 0.1);
     assert.equal(costUsd("jev", 0), 0);
   });
@@ -170,7 +171,7 @@ describe("percentile", () => {
 });
 
 describe("pickLeaders", () => {
-  it("ranks three providers and ties on equal accuracy", () => {
+  it("ranks two providers and ties on equal accuracy", () => {
     const jev = {
       provider: "jev" as const,
       model: "jev",
@@ -184,15 +185,57 @@ describe("pickLeaders", () => {
       correctCount: 2,
       scoredCount: 2,
     };
-    const laya = { ...jev, provider: "laya" as const, correctCount: 2 };
     const openai = { ...jev, provider: "openai" as const, correctCount: 1 };
-    assert.deepEqual(pickLeaders([jev, laya, openai]), {
-      kind: "tie",
-      ids: ["jev", "laya"],
-    });
-    assert.deepEqual(pickLeaders([jev, { ...laya, correctCount: 1 }, openai]), {
+    assert.deepEqual(pickLeaders([jev, openai]), {
       kind: "single",
       ids: ["jev"],
     });
+    assert.deepEqual(pickLeaders([jev, { ...openai, correctCount: 2 }]), {
+      kind: "tie",
+      ids: ["jev", "openai"],
+    });
+  });
+});
+
+describe("pickSummaryLeaders", () => {
+  it("picks the higher-accuracy board winner and ties when equal", () => {
+    const jev: ProviderSummary = {
+      provider: "jev",
+      totalUsd: 0,
+      accuracy: 0.97,
+      correctCount: 35,
+      scoredCount: 36,
+      meanLatencyMs: 0,
+      p95LatencyMs: 0,
+      meanTokens: 0,
+      schemaValidPct: 1,
+      errorCount: 0,
+      refusalCount: 0,
+      meanBrier: null,
+      meanAbsError: null,
+      runCount: 24,
+    };
+    const openai: ProviderSummary = { ...jev, provider: "openai", accuracy: 0.94, correctCount: 34 };
+    assert.deepEqual(pickSummaryLeaders([jev, openai]), {
+      kind: "single",
+      ids: ["jev"],
+    });
+    assert.deepEqual(pickSummaryLeaders([jev, { ...openai, accuracy: 0.97, correctCount: 35 }]), {
+      kind: "tie",
+      ids: ["jev", "openai"],
+    });
+    assert.deepEqual(pickSummaryLeaders([undefined, undefined]), {
+      kind: "none",
+      ids: [],
+    });
+  });
+});
+
+describe("leaderColor", () => {
+  it("uses brand color for a single lead and a distinct tie color", () => {
+    assert.equal(leaderColor(["jev"]), "var(--jev)");
+    assert.equal(leaderColor(["openai"]), "var(--openai)");
+    assert.equal(leaderColor(["jev", "openai"]), "var(--tie, #6d28d9)");
+    assert.equal(leaderColor([]), "var(--muted)");
   });
 });
