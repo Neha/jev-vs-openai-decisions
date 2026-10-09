@@ -1,19 +1,18 @@
 # Jev vs Laya vs OpenAI Decisions
 
-Live comparison of [TypeSafe Jev](https://docs.typesafe.ai/api), [Laya Studio](https://api.laya.studio), and [OpenAI Decisions](https://developers.openai.com/api/docs/guides/decisions) on the same labeled cases.
+Live comparison of [TypeSafe Jev](https://docs.typesafe.ai/api), [Laya Studio](https://laya.studio/docs), and [OpenAI Decisions](https://developers.openai.com/api/docs/guides/decisions) on the same support ticket.
 
-The dashboard scores **price**, **correctness**, **latency**, tokens, schema validity, and refusals so you can see all three APIs answer the same ticket side by side.
+The board scores **price**, **correctness**, and **latency** so you can see all three APIs answer the same case side by side.
 
-## Screens
+![The comparison board](docs/board.png)
 
-- **Playground** — paste a message, optionally attach an image, pick a question template, then run. Text runs all three APIs. An image runs OpenAI only; Jev and Laya show as unsupported.
-- **Vision lane** — three sample image tickets you can load into the playground. They are not scored.
-- **Labeled benchmark** — 24 text-only support tickets (36 scored questions). Click **Run all 24** to stream results into the scoreboard and table. Click a row for probabilities and raw JSON.
-- **Settings** — paste API keys. They stay in this browser and are sent only for each run.
+## How it works
 
-The benchmark is text-only so all three APIs can answer every case. OpenAI can also take images; Jev and Laya cannot. Image tickets never feed Price, Correctness, or Latency.
+1. **Try one ticket** — paste a message, optionally attach an image, pick a question template, then run. Text runs all three APIs. An image runs OpenAI only; Jev and Laya sit out. This path is not scored.
+2. **Score 24 cases** — labeled text-only tickets (36 scored questions). Click **Run all 24** to stream results. Click a row for probabilities and raw JSON.
+3. **Scoreboard** — fills from the labeled run. Photos never count here.
 
-Jev and Laya share the System One protocol, so that column pair is a same-wire comparison. OpenAI uses a different request shape and is the only vision provider.
+Jev and Laya share the System One protocol (text only). OpenAI uses a different request shape and is the only vision provider. Add keys on the **Keys** page; they stay in this browser and are sent only for each run.
 
 ## Setup
 
@@ -25,7 +24,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Add keys in **Settings**, or put them in `.env.local`:
+Open [http://localhost:3000](http://localhost:3000). Add keys on **Keys**, or put them in `.env.local`:
 
 ```
 TYPESAFE_API_KEY=
@@ -33,7 +32,7 @@ LAYA_API_KEY=
 OPENAI_API_KEY=
 ```
 
-A Settings key overrides env for that provider. **Never commit `.env.local` or real keys.**
+A Keys-page value overrides env for that provider. **Never commit `.env.local` or real keys.**
 
 ## What it measures
 
