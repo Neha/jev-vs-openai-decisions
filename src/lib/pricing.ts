@@ -3,7 +3,6 @@ import type { ProviderId } from "./types";
 /** Published input-token rates. Output is free on these decision APIs. */
 export const INPUT_USD_PER_MILLION: Record<ProviderId, number> = {
   jev: 0.042,
-  laya: 0.0357,
   openai: 0.1,
 };
 

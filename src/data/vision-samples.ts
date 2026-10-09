@@ -11,7 +11,7 @@ export const VISION_SAMPLES: VisionSample[] = [
   {
     id: "receipt",
     title: "Receipt photo",
-    blurb: "Double charge on a statement. OpenAI can read the image; Jev and Laya cannot.",
+    blurb: "Double charge on a statement. OpenAI can read the image; Jev cannot.",
     input:
       "Customer attached this statement photo and says they were charged twice for the same order.",
   },

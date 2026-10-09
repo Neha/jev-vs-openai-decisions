@@ -13,9 +13,8 @@ describe("resolveProviderKey", () => {
 
 describe("configuredFromKeys", () => {
   it("marks a provider ready when a key is present", () => {
-    assert.deepEqual(configuredFromKeys({ jev: "a", laya: undefined, openai: undefined }), {
+    assert.deepEqual(configuredFromKeys({ jev: "a", openai: undefined }), {
       jev: true,
-      laya: false,
       openai: false,
     });
   });

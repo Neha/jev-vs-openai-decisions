@@ -12,7 +12,7 @@ const SAMPLE =
   "I was charged twice for my order and nobody has replied for 3 days. I need this refunded before my card statement closes tomorrow.";
 
 const skipImageReason = (name: string) =>
-  `${name} reads text only. Remove the photo to run all three.`;
+  `${name} reads text only. Remove the photo to run both.`;
 
 export function Playground() {
   const fileId = useId();
@@ -24,7 +24,6 @@ export function Playground() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<{
     jev?: ProviderResult;
-    laya?: ProviderResult;
     openai?: ProviderResult;
   }>({});
 
@@ -36,7 +35,7 @@ export function Playground() {
       : "Run OpenAI"
     : running
       ? "Running…"
-      : "Run all three";
+      : "Run both";
 
   async function attachFile(file: File | undefined) {
     if (!file) {
@@ -78,14 +77,13 @@ export function Playground() {
       const data = (await response.json()) as {
         error?: string;
         jev?: ProviderResult;
-        laya?: ProviderResult;
         openai?: ProviderResult;
       };
       if (!response.ok) {
         setError(data.error ?? "Run failed");
         return;
       }
-      setResults({ jev: data.jev, laya: data.laya, openai: data.openai });
+      setResults({ jev: data.jev, openai: data.openai });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Run failed");
     } finally {
@@ -100,7 +98,7 @@ export function Playground() {
           <p className="text-[15px] font-medium text-[var(--muted)]">Step 1 · not scored</p>
           <h2 className="mt-2 text-[34px] leading-none font-semibold tracking-tight">Try one ticket</h2>
           <p className="mt-3 max-w-xl text-[19px] leading-7 text-[var(--muted)]">
-            Paste a message. Add a photo only if you want OpenAI to read it — Jev and Laya will sit out.
+            Paste a message. Add a photo only if you want OpenAI to read it — Jev will sit out.
           </p>
         </div>
       </div>
@@ -186,7 +184,7 @@ export function Playground() {
       {imageError ? <p className="mt-4 text-[17px] text-[var(--bad)]">{imageError}</p> : null}
       {error ? <p className="mt-4 text-[17px] text-[var(--bad)]">{error}</p> : null}
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <ProviderPanel
           accent="jev"
           model="jev-latest"
@@ -194,14 +192,6 @@ export function Playground() {
           questions={questions}
           capability="Text only"
           skipReason={image ? skipImageReason("Jev") : undefined}
-        />
-        <ProviderPanel
-          accent="laya"
-          model="laya"
-          result={results.laya}
-          questions={questions}
-          capability="Text only"
-          skipReason={image ? skipImageReason("Laya") : undefined}
         />
         <ProviderPanel
           accent="openai"

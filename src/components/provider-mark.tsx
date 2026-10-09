@@ -3,7 +3,6 @@ import type { ProviderId } from "@/lib/types";
 
 const COLOR: Record<ProviderId, string> = {
   jev: "var(--jev)",
-  laya: "var(--laya)",
   openai: "var(--openai)",
 };
 
